@@ -1,0 +1,42 @@
+# Build folders
+build/
+Build/
+build-*/
+cmake-build-*/
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+install_manifest.txt
+compile_commands.json
+CMakeUserPresets.json
+
+# Qt Creator / user-specific files
+*.user
+*.pro.user
+*.autosave
+.qtcreator/
+
+# Compiled outputs
+*.o
+*.obj
+*.exe
+*.dll
+*.pdb
+*.out
+*.app
+
+# Temporary / logs
+*.tmp
+*.log
+*.bak
+*.swp
+
+# Test / cache
+Testing/
+.cache/
+
+# Local app data
+Data/
