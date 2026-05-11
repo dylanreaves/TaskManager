@@ -1,3 +1,4 @@
+// Implements the custom monthly calendar widget to display the "Event" objects
 #include "MonthCalendarWidget.h"
 
 #include <algorithm>

@@ -1,3 +1,4 @@
+// Implements JSON file i/o for Event data and includes load/save error handling
 #include "Storage.h"
 
 #include <QDir>

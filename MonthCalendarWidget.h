@@ -1,4 +1,5 @@
-﻿#ifndef MONTHCALENDARWIDGET_H
+﻿// Header file for a custom version of Qt's calendar widget
+#ifndef MONTHCALENDARWIDGET_H
 #define MONTHCALENDARWIDGET_H
 
 #include <QDate>

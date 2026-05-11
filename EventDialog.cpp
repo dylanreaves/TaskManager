@@ -1,3 +1,4 @@
+// Implements dialog validation, field behavior and UI updates for adding/editing event details
 #include "EventDialog.h"
 
 #include "./ui_eventdialog.h"

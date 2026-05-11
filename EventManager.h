@@ -1,3 +1,4 @@
+// Header file for interacting with "Event" objects
 #ifndef EVENTMANAGER_H
 #define EVENTMANAGER_H
 

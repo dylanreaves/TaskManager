@@ -1,3 +1,4 @@
+// Mainly renders the agenda, list, details panel and visual styling for the mainWindow
 #include "mainwindow.h"
 
 #include "./ui_mainwindow.h"

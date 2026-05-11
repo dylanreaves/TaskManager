@@ -1,3 +1,4 @@
+// Implementation file for creating schedule objects called "Events"
 #include "Event.h"
 
 Event::Event()

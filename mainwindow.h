@@ -1,3 +1,4 @@
+// Header file for Qt's main window framework
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 

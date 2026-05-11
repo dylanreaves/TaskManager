@@ -1,3 +1,4 @@
+// Implements event interactions like storage, filtering, sorting and occurence generation
 #include "EventManager.h"
 
 #include <QSet>

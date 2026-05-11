@@ -1,4 +1,5 @@
-﻿#ifndef STORAGE_H
+﻿// Header file for handling file i/o and stores a vector of "Event" objects
+#ifndef STORAGE_H
 #define STORAGE_H
 
 #include <QString>

@@ -1,3 +1,4 @@
+// Implements main window setup and initializes all layouts
 #include "mainwindow.h"
 
 #include "./ui_mainwindow.h"

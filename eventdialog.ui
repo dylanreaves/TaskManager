@@ -125,7 +125,7 @@
    <item>
     <widget class="QLabel" name="typeHelperLabel">
      <property name="text">
-      <string>Choose Event Type before filling dates or repeat settings. It controls which schedule options appear below.</string>
+      <string>Select Event Type before filling dates or repeat settings. It controls which schedule options appear below.</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>

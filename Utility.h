@@ -1,3 +1,4 @@
+// Header files for various shared helper functions throughout the program
 #ifndef UTILITY_H
 #define UTILITY_H
 

@@ -1,3 +1,4 @@
+// Mainly handles the actions made by users from the GUI
 #include "mainwindow.h"
 
 #include "./ui_mainwindow.h"

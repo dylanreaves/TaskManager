@@ -1,3 +1,4 @@
+// Header file for the creating the EventDialog GUI
 #ifndef EVENTDIALOG_H
 #define EVENTDIALOG_H
 

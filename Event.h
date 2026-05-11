@@ -1,3 +1,4 @@
+// Header file for creating schedule objects called "Events"
 #ifndef EVENT_H
 #define EVENT_H
 

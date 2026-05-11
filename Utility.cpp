@@ -1,3 +1,4 @@
+// Implements many shared helper functions
 #include "Utility.h"
 
 #include <algorithm>
