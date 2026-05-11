@@ -18,13 +18,15 @@ QDateTime endOfDay(const QDate &date) {
 }
 
 QDate monthGridStartDateForMonth(const QDate &visibleMonth) {
-    if (!visibleMonth.isValid()) {
-        return QDate();
+    QDate returnVal;
+
+    if (visibleMonth.isValid()) {
+        const QDate monthStart(visibleMonth.year(), visibleMonth.month(), 1);
+        const int daysBack = monthStart.dayOfWeek() % 7; // Sunday-first grid.
+        returnVal = monthStart.addDays(-daysBack);
     }
 
-    const QDate monthStart(visibleMonth.year(), visibleMonth.month(), 1);
-    const int daysBack = monthStart.dayOfWeek() % 7; // Sunday-first grid.
-    return monthStart.addDays(-daysBack);
+    return returnVal;
 }
 
 const int RECURRING_PAST_DAYS = 30;
@@ -57,11 +59,11 @@ qint64 occurrenceDurationSeconds(const Event &event) {
 }
 
 QDateTime occurrenceEndForGeneratedStart(const Event &event, const QDateTime &occurrenceStartDateTime) {
-    if (!occurrenceStartDateTime.isValid()) {
-        return QDateTime();
+    QDateTime returnVal = QDateTime();
+    if (occurrenceStartDateTime.isValid()) {
+        returnVal = occurrenceStartDateTime.addSecs(occurrenceDurationSeconds(event));
     }
-
-    return occurrenceStartDateTime.addSecs(occurrenceDurationSeconds(event));
+    return returnVal;
 }
 
 int sundayFirstDayOffset(Qt::DayOfWeek day) {
@@ -83,22 +85,28 @@ QList<Qt::DayOfWeek> normalizedRepeatDays(const Event &event) {
 }
 
 bool eventSpansDate(const Event &event, const QDate &date) {
-    if (!event.getStartDateTime().isValid() || !event.getEndDateTime().isValid() || !date.isValid()) {
-        return false;
-    }
+    bool returnVal = false;
 
-    return (event.getStartDateTime().date() <= date && event.getEndDateTime().date() >= date);
+    if (event.getStartDateTime().isValid()
+        && event.getEndDateTime().isValid()
+        && date.isValid()) {
+        returnVal = event.getStartDateTime().date() <= date
+            && event.getEndDateTime().date() >= date;
+    }
+    return returnVal;
 }
 
 bool eventOverlapsDateRange(const Event &event, const QDate &rangeStart, const QDate &rangeEnd) {
-    if (!event.getStartDateTime().isValid()
-        || !event.getEndDateTime().isValid()
-        || !rangeStart.isValid()
-        || !rangeEnd.isValid()) {
-        return false;
-    }
+    bool returnVal = false;
 
-    return (event.getEndDateTime().date() >= rangeStart && event.getStartDateTime().date() <= rangeEnd);
+    if (event.getStartDateTime().isValid()
+        && event.getEndDateTime().isValid()
+        && rangeStart.isValid()
+        && rangeEnd.isValid()) {
+        returnVal = event.getEndDateTime().date() >= rangeStart
+            && event.getStartDateTime().date() <= rangeEnd;
+    }
+    return returnVal;
 }
 
 bool eventIsBacklogCandidate(const Event &event) {
@@ -106,61 +114,66 @@ bool eventIsBacklogCandidate(const Event &event) {
 }
 
 int visualStateSortRank(EventVisualState visualState) {
+    int returnVal = 0;
+
     switch (visualState) {
-    case EventVisualState::Active:
-        return 0;
-    case EventVisualState::PastIncomplete:
-        return 1;
-    case EventVisualState::Completed:
-        return 2;
+        case EventVisualState::Active:
+            returnVal = 0;
+            break;
+        case EventVisualState::PastIncomplete:
+            returnVal = 1;
+            break;
+        case EventVisualState::Completed:
+            returnVal = 2;
+            break;
     }
-    return 0;
+    return returnVal;
 }
 
 int monthItemSortBucket(const EventOccurrence &occurrence) {
+    int returnVal = occurrence.allDay ? 1 : 2;
     if (occurrence.startDateTime.isValid() && occurrence.endDateTime.isValid()
         && occurrence.startDateTime.date() != occurrence.endDateTime.date()) {
-        return 0;
+        returnVal = 0;
     }
-    return occurrence.allDay ? 1 : 2;
+    return returnVal;
 }
 
 QTime monthItemSortTime(const EventOccurrence &occurrence) {
+    QTime returnVal(23, 59, 59);
     if (occurrence.eventType == EventType::Task && occurrence.endDateTime.isValid()) {
-        return occurrence.endDateTime.time();
+        returnVal = occurrence.endDateTime.time();
+    } else if (occurrence.startDateTime.isValid()) {
+        returnVal = occurrence.startDateTime.time();
     }
-
-    if (occurrence.startDateTime.isValid()) {
-        return occurrence.startDateTime.time();
-    }
-    return QTime(23, 59, 59);
+    return returnVal;
 }
 
 QDateTime visibleSortAnchor(const EventOccurrence &occurrence, const QDate &visibleDate) {
-    if (!occurrence.startDateTime.isValid()) {
-        return QDateTime();
+    QDateTime returnVal;
+
+    if (occurrence.startDateTime.isValid()) {
+        returnVal = occurrence.startDateTime;
+
+        if (visibleDate.isValid()
+            && occurrence.startDateTime.date() < visibleDate
+            && occurrence.endDateTime.date() >= visibleDate) {
+            returnVal = startOfDay(visibleDate);
+        }
     }
 
-    if (!visibleDate.isValid()) {
-        return occurrence.startDateTime;
-    }
-
-    if (occurrence.startDateTime.date() < visibleDate && occurrence.endDateTime.date() >= visibleDate) {
-        return startOfDay(visibleDate);
-    }
-    return occurrence.startDateTime;
+    return returnVal;
 }
 
 bool occurrenceIsVisibleInRange(const QDate &rangeStart, const QDate &rangeEnd, const QDateTime &occurrenceStartDateTime, const QDateTime &occurrenceEndDateTime) {
-    if (!occurrenceStartDateTime.isValid() || !occurrenceEndDateTime.isValid()) {
-        return false;
+    bool returnVal = false;
+
+    if (occurrenceStartDateTime.isValid() && occurrenceEndDateTime.isValid()) {
+        returnVal = occurrenceEndDateTime.date() >= rangeStart
+            && occurrenceStartDateTime.date() <= rangeEnd;
     }
 
-    if (occurrenceEndDateTime.date() < rangeStart || occurrenceStartDateTime.date() > rangeEnd) {
-        return false;
-    }
-
-    return true;
+    return returnVal;
 }
 
 void updateMonthCellJumpDate(MonthCellState &cell, const QDate &clickedDate, const QDate &candidateJumpDate) {
@@ -243,16 +256,15 @@ bool compareMonthSpans(const MonthSpanItem &left, const MonthSpanItem &right) {
 
 // Classify one visible occurrence as active, overdue, or completed.
 EventVisualState visualStateForOccurrence(const EventOccurrence &occurrence, const QDateTime &now) {
+    EventVisualState returnVal = EventVisualState::Active;
     if (occurrence.completed) {
-        return EventVisualState::Completed;
+        returnVal = EventVisualState::Completed;
+    } else if (occurrence.endDateTime.isValid() && occurrence.endDateTime < now) {
+        returnVal = EventVisualState::PastIncomplete;
     }
-
-    if (occurrence.endDateTime.isValid() && occurrence.endDateTime < now) {
-        return EventVisualState::PastIncomplete;
-    }
-
-    return EventVisualState::Active;
+    return returnVal;
 }
+
 
 bool occurrenceIsBacklog(const EventOccurrence &occurrence) {
     return !occurrenceHasSchedule(occurrence);
@@ -300,6 +312,7 @@ bool EventManager::deleteEvent(int id) {
 
 // Function for editing an Event
 bool EventManager::editEvent(int id, const Event &updatedEvent) {
+    bool returnVal = false;
     for (Event &event : m_events) {
         if (event.getId() == id) {
             Event replacement = updatedEvent;
@@ -311,11 +324,12 @@ bool EventManager::editEvent(int id, const Event &updatedEvent) {
                 replacement.setAutoCompleteSuppressed(event.isAutoCompleteSuppressed());
             }
             event = replacement;
-            return true;
+            returnVal = true;
+            break;
         }
     }
 
-    return false;
+    return returnVal;
 }
 
 // Function for marking an event as complete
@@ -803,57 +817,68 @@ void EventManager::sortOccurrences(QVector<EventOccurrence> &occurrences, EventT
 }
 
 bool EventManager::matchesFacetFilters(const EventOccurrence &occurrence, const EventQuery &query) {
-    if (!query.searchText.trimmed().isEmpty()
-        && !occurrence.name.contains(query.searchText.trimmed(), Qt::CaseInsensitive)) {
-        return false;
-    }
-
-    if (query.priorityEnabled && occurrence.priority != query.priority) {
-        return false;
-    }
-
+    bool returnVal = true;
     const QString categoryFilter = query.category.trimmed();
-    if (!categoryFilter.isEmpty()
-        && categoryFilter.compare(occurrence.category.trimmed(), Qt::CaseInsensitive) != 0) {
-        return false;
+    const QString searchText = query.searchText.trimmed();
+
+    if (!searchText.isEmpty() && !occurrence.name.contains(searchText, Qt::CaseInsensitive)) {
+        returnVal = false;
     }
 
-    return true;
+    if (returnVal && query.priorityEnabled && occurrence.priority != query.priority) {
+        returnVal = false;
+    }
+
+    if (returnVal
+        && !categoryFilter.isEmpty()
+        && categoryFilter.compare(occurrence.category.trimmed(), Qt::CaseInsensitive) != 0) {
+        returnVal = false;
+    }
+
+    return returnVal;
 }
 
 bool EventManager::matchesBaseFacetFilters(const Event &event, const EventQuery &query) {
-    if (!query.searchText.trimmed().isEmpty()
-        && !event.getName().contains(query.searchText.trimmed(), Qt::CaseInsensitive)) {
-        return false;
-    }
-
-    if (query.priorityEnabled && event.getPriority() != query.priority) {
-        return false;
-    }
-
+    bool returnVal = true;
     const QString categoryFilter = query.category.trimmed();
-    if (!categoryFilter.isEmpty()
-        && categoryFilter.compare(event.getCategory().trimmed(), Qt::CaseInsensitive) != 0) {
-        return false;
+    const QString searchText = query.searchText.trimmed();
+
+    if (!searchText.isEmpty() && !event.getName().contains(searchText, Qt::CaseInsensitive)) {
+        returnVal = false;
     }
 
-    return true;
+    if (returnVal && query.priorityEnabled && event.getPriority() != query.priority) {
+        returnVal = false;
+    }
+
+    if (returnVal
+        && !categoryFilter.isEmpty()
+        && categoryFilter.compare(event.getCategory().trimmed(), Qt::CaseInsensitive) != 0) {
+        returnVal = false;
+    }
+
+    return returnVal;
 }
 
 bool EventManager::matchesBacklogTimeFilter(const Event &event, EventTimeFilter filter) {
+    bool returnVal = false;
+    const bool isCompleted = event.isCompleted();
+
     switch (filter) {
         case EventTimeFilter::Completed:
-            return event.isCompleted();
+            returnVal = isCompleted;
+            break;
         case EventTimeFilter::Recurring:
-            return false;
+            returnVal = false;
+            break;
         case EventTimeFilter::AllEvents:
         case EventTimeFilter::Today:
         case EventTimeFilter::Upcoming:
         case EventTimeFilter::ThisWeek:
-            return !event.isCompleted();
+            returnVal = !isCompleted;
+            break;
     }
-
-    return false;
+    return returnVal;
 }
 
 // Expand one stored event into the concrete visible occurrences that overlap the requested date range.
@@ -1057,31 +1082,37 @@ EventOccurrence EventManager::buildOccurrence(const Event &event, const QDateTim
 }
 
 bool EventManager::matchesTimeFilter(const Event &event, EventTimeFilter filter, const QDateTime &now) const {
+    bool returnVal = true;
+
     switch (filter) {
         case EventTimeFilter::AllEvents:
-            return true;
+            returnVal = true;
+            break;
         case EventTimeFilter::Today:
-            return !visibleOccurrencesForFilter(event, filter, now).isEmpty();
         case EventTimeFilter::Upcoming:
-            return !visibleOccurrencesForFilter(event, filter, now).isEmpty();
-        case EventTimeFilter::ThisWeek: {
-            return !visibleOccurrencesForFilter(event, filter, now).isEmpty();
-        }
+        case EventTimeFilter::ThisWeek:
+            returnVal = !visibleOccurrencesForFilter(event, filter, now).isEmpty();
+            break;
         case EventTimeFilter::Recurring:
-            return !event.isCompleted() && event.hasRecurrence();
+            returnVal = !event.isCompleted() && event.hasRecurrence();
+            break;
         case EventTimeFilter::Completed:
-            return event.isCompleted();
+            returnVal = event.isCompleted();
+            break;
     }
-
-    return true;
+    return returnVal;
 }
+
 
 QDate EventManager::effectiveDate(const Event &event, EventTimeFilter filter) const {
+    QDate returnVal = event.getStartDateTime().date();
+
     if (filter == EventTimeFilter::Completed && event.getCompletedAt().isValid()) {
-        return event.getCompletedAt().date();
+        returnVal = event.getCompletedAt().date();
     }
-    return event.getStartDateTime().date();
+    return returnVal;
 }
+
 
 void EventManager::recalculateNextId() {
     int maxId = 0;
