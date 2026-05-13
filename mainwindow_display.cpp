@@ -33,6 +33,7 @@ const int FOLDER_DEPTH_ROLE = Qt::UserRole + 5;
 const int PARENT_FOLDER_ID_ROLE = Qt::UserRole + 6;
 const QString TODAY_SUFFIX = QStringLiteral(" <Today>"); // String that labels the folder that represents Today.
 
+// Simple enum to differentiate folders from events in the list table
 enum class ListTableRowKind {
     Occurrence = 0,
     Folder = 1,

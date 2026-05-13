@@ -173,7 +173,6 @@ bool occurrenceIsVisibleInRange(const QDate &rangeStart, const QDate &rangeEnd, 
         returnVal = occurrenceEndDateTime.date() >= rangeStart
             && occurrenceStartDateTime.date() <= rangeEnd;
     }
-
     return returnVal;
 }
 
@@ -390,7 +389,6 @@ Event *EventManager::findEventById(int id) {
             return &event;
         }
     }
-
     return nullptr;
 }
 
@@ -400,7 +398,6 @@ const Event *EventManager::findEventById(int id) const {
             return &event;
         }
     }
-
     return nullptr;
 }
 
@@ -469,6 +466,7 @@ QVector<EventOccurrence> EventManager::backlogEntries(const EventQuery &query, c
     return results;
 }
 
+// Gets the event objects that will be added to the agenda section
 QVector<EventOccurrence> EventManager::agendaListEntries(const QDateTime &now) const {
     QVector<EventOccurrence> results;
     const QDate today = now.date();
@@ -490,6 +488,7 @@ QVector<EventOccurrence> EventManager::agendaListEntries(const QDateTime &now) c
     return results;
 }
 
+// Gets the event objects that are happening in the current week
 QMap<QDate, QVector<EventOccurrence>> EventManager::occurrencesForWeek(const QDate &referenceDate, const EventQuery &query, const QDateTime &now) const {
     QMap<QDate, QVector<EventOccurrence>> grouped;
     const QDate weekStart = weekStartForDate(referenceDate);
@@ -531,6 +530,7 @@ QMap<QDate, QVector<EventOccurrence>> EventManager::occurrencesForWeek(const QDa
     return grouped;
 }
 
+// Returns a QStringList of the categories
 QStringList EventManager::categories() const {
     QSet<QString> seenCategories;
     QStringList categories;
@@ -670,7 +670,6 @@ MonthViewModel EventManager::monthViewModel(const QDate &visibleMonth, const Eve
     }
 
     std::sort(model.spans.begin(), model.spans.end(), compareMonthSpans);
-
     return model;
 }
 

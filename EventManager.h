@@ -67,10 +67,8 @@ QString occurrenceScheduleText(const EventOccurrence &occurrence, const QDate &v
 QString occurrenceDetailsDateText(const EventOccurrence &occurrence);
 QString occurrenceListStartText(const EventOccurrence &occurrence);
 QString occurrenceListEndText(const EventOccurrence &occurrence);
-QString agendaListStatusText(const EventOccurrence &occurrence,
-                             const QDateTime &now = QDateTime::currentDateTime());
-QString agendaListDueSummaryText(const EventOccurrence &occurrence,
-                                 const QDateTime &now = QDateTime::currentDateTime());
+QString agendaListStatusText(const EventOccurrence &occurrence, const QDateTime &now = QDateTime::currentDateTime());
+QString agendaListDueSummaryText(const EventOccurrence &occurrence, const QDateTime &now = QDateTime::currentDateTime());
 
 struct MonthCellItem {
     EventOccurrence occurrence;

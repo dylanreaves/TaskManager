@@ -8,6 +8,7 @@
 
 #include "Event.h"
 
+
 QString priorityToString(Priority priority);
 QString priorityToStorageString(Priority priority);
 Priority priorityFromString(const QString &value);

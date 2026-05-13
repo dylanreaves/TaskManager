@@ -2,7 +2,6 @@
 #include "MonthCalendarWidget.h"
 
 #include <algorithm>
-
 #include <QApplication>
 #include <QFrame>
 #include <QHBoxLayout>

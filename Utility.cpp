@@ -245,6 +245,7 @@ QString categoryTypeDisplayText(const QString &category, EventType eventType) {
         .arg(categoryDisplayText(category), eventTypeDisplayText(eventType));
 }
 
+// Converts priority into a string formatted as "Priority: (priority)"
 QString priorityMetadataText(Priority priority) {
     return QStringLiteral("Priority: %1").arg(priorityToString(priority));
 }
@@ -368,6 +369,7 @@ QString locationDisplayText(const QString &location) {
     return location.trimmed().isEmpty() ? QStringLiteral("N/A") : location.trimmed();
 }
 
+//
 QColor blendColors(const QColor &base, const QColor &overlay, qreal overlayAmount) {
     const qreal amount = std::clamp(overlayAmount, 0.0, 1.0);
     return QColor(
@@ -376,10 +378,12 @@ QColor blendColors(const QColor &base, const QColor &overlay, qreal overlayAmoun
         static_cast<int>(base.blue() * (1.0 - amount) + overlay.blue() * amount));
 }
 
+// Returns Hex RGB (#FFFFFF) from a QColor
 QString colorCss(const QColor &color) {
     return color.name(QColor::HexRgb);
 }
 
+// Returns a string with the RGB and alpha of a color
 QString rgbaCss(const QColor &color) {
     return QStringLiteral("rgba(%1, %2, %3, %4)")
         .arg(color.red())
@@ -388,6 +392,7 @@ QString rgbaCss(const QColor &color) {
         .arg(color.alpha());
 }
 
+// Returns a string to set the Css color, fontSize and fontWeight
 QString fontStyleCss(const QColor &color, int fontSize, int fontWeight) {
     return QStringLiteral("QLabel { color: %1; font-size: %2px; font-weight: %3; }")
         .arg(colorCss(color))
@@ -439,8 +444,7 @@ QString recurrenceSummaryForEvent(const Event &event) {
     }
 
     if (event.getRecurrenceUntil().isValid()) {
-        summary += QStringLiteral(" until %1")
-                       .arg(event.getRecurrenceUntil().toString(QStringLiteral("MMM d, yyyy")));
+        summary += QStringLiteral(" until %1").arg(event.getRecurrenceUntil().toString(QStringLiteral("MMM d, yyyy")));
     }
 
     return summary;

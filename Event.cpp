@@ -206,6 +206,7 @@ bool Event::isScheduleBlock() const {
     return m_eventType == EventType::ScheduleBlock;
 }
 
+// Returns if an event's fields are filled enough to be created & stored
 bool Event::isValid() const {
     if (m_name.trimmed().isEmpty()) {
         return false;

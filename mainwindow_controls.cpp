@@ -24,6 +24,7 @@ const int EVENT_ID_ROLE = Qt::UserRole + 1;
 const int ROW_KIND_ROLE = Qt::UserRole + 3;
 const int FOLDER_ID_ROLE = Qt::UserRole + 4;
 
+// Simple enum to differentiate folders from events in the list table
 enum class ListTableRowKind {
     Occurrence = 0,
     Folder = 1,

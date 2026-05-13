@@ -1,4 +1,4 @@
-﻿// Header file for handling file i/o and stores a vector of "Event" objects
+﻿// Header file for handling file i/o and stores a vector of "Event" class objects
 #ifndef STORAGE_H
 #define STORAGE_H
 

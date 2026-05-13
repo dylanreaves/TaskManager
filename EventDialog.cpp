@@ -63,10 +63,7 @@ void configureInlineFieldRow(QHBoxLayout *rowLayout) {
     rowLayout->addStretch(1);
 }
 
-void configureInlineFieldWidget(QWidget *fieldWidget,
-                                QLabel *label,
-                                QWidget *inputWidget,
-                                int minimumInputWidth) {
+void configureInlineFieldWidget(QWidget *fieldWidget, QLabel *label, QWidget *inputWidget, int minimumInputWidth) {
     if (fieldWidget != nullptr) {
         fieldWidget->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
     }
@@ -501,7 +498,7 @@ void EventDialog::validateAndAccept() {
         }
     }
 
-    accept();
+    accept(); // Accept function derived from QDialog
 }
 
 void EventDialog::ensureRecurrenceTypeVisible(RecurrenceType recurrenceType) {
@@ -516,8 +513,7 @@ void EventDialog::setupTypeSelector() {
     ui->typeComboBox->addItem(eventTypeLabel(EventType::Task), static_cast<int>(EventType::Task));
     ui->typeComboBox->addItem(eventTypeLabel(EventType::Event), static_cast<int>(EventType::Event));
     ui->typeComboBox->addItem(eventTypeLabel(EventType::Reminder), static_cast<int>(EventType::Reminder));
-    ui->typeComboBox->addItem(eventTypeLabel(EventType::ScheduleBlock),
-                              static_cast<int>(EventType::ScheduleBlock));
+    ui->typeComboBox->addItem(eventTypeLabel(EventType::ScheduleBlock), static_cast<int>(EventType::ScheduleBlock));
     ui->detailsGroupBox->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     ui->descriptionTextEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
@@ -632,13 +628,10 @@ void EventDialog::applyRecurrenceUi() {
     ui->recurrenceUntilRowWidget->setVisible(hasRecurrence && !customRecurrence);
     ui->repeatDaysContainer->setVisible(hasRecurrence && weeklyRecurrence);
     ui->customRecurrenceNoticeLabel->setVisible(customRecurrence);
-    ui->recurrenceUntilDateEdit->setEnabled(ui->recurrenceUntilCheckBox->isChecked()
-                                            && hasRecurrence
-                                            && !customRecurrence);
+    ui->recurrenceUntilDateEdit->setEnabled(ui->recurrenceUntilCheckBox->isChecked() && hasRecurrence && !customRecurrence);
 
     if (hasRecurrence && weeklyRecurrence && selectedRepeatDays().isEmpty()) {
-        setSelectedRepeatDays(
-            {static_cast<Qt::DayOfWeek>(ui->startDateTimeEdit->date().dayOfWeek())});
+        setSelectedRepeatDays({static_cast<Qt::DayOfWeek>(ui->startDateTimeEdit->date().dayOfWeek())});
     }
 
     applyScheduleFieldLabels();
@@ -717,24 +710,24 @@ void EventDialog::updateScheduleHelperText() {
 
     QString helperText;
     switch (type) {
-    case EventType::Task:
-        helperText = hasDueDate
-            ? tr("Add a due date only when this task needs a deadline.")
-            : tr("Tasks can stay undated until you are ready to schedule them.");
-        break;
-    case EventType::Event:
-        helperText = allDay
-            ? tr("Set a later end date to create a multi-day all-day event.")
-            : tr("Set a later end date to create a multi-day or overnight event.");
-        break;
-    case EventType::Reminder:
-        helperText = tr("Use one reminder time for a simple point-in-time prompt.");
-        break;
-    case EventType::ScheduleBlock:
-        helperText = usesRecurringSchedulePattern()
-            ? tr("Schedules repeat from the first occurrence on the selected days until the optional end date.")
-            : tr("Use Repeat for class or work patterns such as weekly shifts.");
-        break;
+        case EventType::Task:
+            helperText = hasDueDate
+                ? tr("Add a due date only when this task needs a deadline.")
+                : tr("Tasks can stay undated until you are ready to schedule them.");
+            break;
+        case EventType::Event:
+            helperText = allDay
+                ? tr("Set a later end date to create a multi-day all-day event.")
+                : tr("Set a later end date to create a multi-day or overnight event.");
+            break;
+        case EventType::Reminder:
+            helperText = tr("Use one reminder time for a simple point-in-time prompt.");
+            break;
+        case EventType::ScheduleBlock:
+            helperText = usesRecurringSchedulePattern()
+                ? tr("Schedules repeat from the first occurrence on the selected days until the optional end date.")
+                : tr("Use Repeat for class or work patterns such as weekly shifts.");
+            break;
     }
 
     ui->scheduleHelperLabel->setText(helperText);

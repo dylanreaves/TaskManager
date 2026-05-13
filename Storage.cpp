@@ -165,8 +165,7 @@ bool parseEventObject(const QJsonObject &object, Event *event) {
         parsedEvent.setNotified(jsonBool(object, QStringLiteral("notified"), false));
         parsedEvent.setCompleted(jsonBool(object, QStringLiteral("completed"), false));
         parsedEvent.setCompletedAt(completedAt);
-        parsedEvent.setAutoCompleteSuppressed(
-            jsonBool(object, QStringLiteral("autoCompleteSuppressed"), false));
+        parsedEvent.setAutoCompleteSuppressed(jsonBool(object, QStringLiteral("autoCompleteSuppressed"), false));
         parsedEvent.setEventType(eventType);
         parsedEvent.setAllDay(jsonBool(object, QStringLiteral("allDay"), false));
         parsedEvent.setRecurrenceType(recurrenceType);

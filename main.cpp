@@ -1,4 +1,4 @@
-﻿// Starts the Qt application and opens the TaskMangaer window
+﻿// Starts the Qt application and opens the TaskManager window
 #include "mainwindow.h"
 
 #include <QApplication>

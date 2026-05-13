@@ -34,23 +34,23 @@ const int ROW_KIND_ROLE = Qt::UserRole + 3;
 const int FOLDER_ID_ROLE = Qt::UserRole + 4;
 const int FOLDER_DEPTH_ROLE = Qt::UserRole + 5;
 const int PARENT_FOLDER_ID_ROLE = Qt::UserRole + 6;
+
+// Simple enum to differentiate folders from events in the list table
 enum class ListTableRowKind {
     Occurrence = 0,
     Folder = 1,
 };
 
-const int MONTH_PANEL_MIN_HEIGHT = 0;       // Minimum height for list & month panel
-const int TOP_CONTENT_MIN_HEIGHT = 0;       // Minimum height for list & month panel
-const int DETAILS_MIN_HEIGHT = 190;        // Minimum height for list & month panel
-const int DETAILS_PREFERRED_HEIGHT = 240;      // Minimum height for list & month panel
-const int WINDOW_MIN_HEIGHT = 520;         // Minimum height for list & month panel
-
-const QString TODAY_SUFFIX = QStringLiteral(" <Today>");
+const int MONTH_PANEL_MIN_HEIGHT = 0;           // Minimum height for list & month panel
+const int TOP_CONTENT_MIN_HEIGHT = 0;           // Minimum height for list & month panel
+const int DETAILS_MIN_HEIGHT = 190;             // Minimum height for list & month panel
+const int DETAILS_PREFERRED_HEIGHT = 240;       // Minimum height for list & month panel
+const int WINDOW_MIN_HEIGHT = 520;              // Minimum height for list & month panel
+const QString TODAY_SUFFIX = QStringLiteral(" <Today>"); // String literal that goes onto the "Today" folder
 
 class ListFolderTodayDelegate final : public QStyledItemDelegate {
     public:
         using QStyledItemDelegate::QStyledItemDelegate;
-
         void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override {
             const bool isFolder = index.data(ROW_KIND_ROLE).toInt() == static_cast<int>(ListTableRowKind::Folder);
             const QString displayText = index.data(Qt::DisplayRole).toString();

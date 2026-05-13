@@ -89,6 +89,7 @@ class Event {
         void setCompletedAt(const QDateTime &completedAt);
         void setAutoCompleteSuppressed(bool autoCompleteSuppressed);
 
+        // Important booleans
         bool hasRecurrence() const;
         bool isMultiDay() const;
         bool isTaskLike() const;

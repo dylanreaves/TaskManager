@@ -8,9 +8,7 @@
 #include "Event.h"
 
 QT_BEGIN_NAMESPACE
-namespace Ui {
-class EventDialog;
-}
+namespace Ui { class EventDialog; }
 QT_END_NAMESPACE
 
 class QDateTimeEdit;

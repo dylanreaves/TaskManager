@@ -22,12 +22,9 @@ class MonthCalendarWidget : public QWidget {
         explicit MonthCalendarWidget(QWidget *parent = nullptr);
         QSize minimumSizeHint() const override;
         QSize sizeHint() const override;
-
         void setMonthViewModel(const MonthViewModel &model);
-
         QDate selectedDate() const;
         QDate visibleMonth() const;
-
         void setSelectedDate(const QDate &date);
         void showSelectedDate();
 
