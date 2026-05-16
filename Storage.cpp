@@ -3,6 +3,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QSaveFile>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -193,37 +194,54 @@ bool parseEventObject(const QJsonObject &object, Event *event) {
 
 // Saves the current events to a file and reports any storage error.
 void Storage::saveToFile(const QVector<Event> &events, const QString &filename, QString *errorMessage) {
-    QFileInfo fileInfo(filename);
-    QDir directory = fileInfo.dir();
-    QJsonArray array;
     QString saveError;
-    bool canWrite = true;
 
-    if (!directory.exists()) {
-        canWrite = directory.mkpath(QStringLiteral("."));
-        if (!canWrite) {
-            saveError = QStringLiteral("Unable to create the storage directory for %1.").arg(filename);
+    try {
+        QFileInfo fileInfo(filename);
+        QDir directory = fileInfo.dir();
+
+        // Create the directory exists if it does not exist
+        if (!directory.exists()) {
+            const bool directoryCreated = directory.mkpath(QStringLiteral("."));
+
+            if (!directoryCreated){
+                throw QStringLiteral("Unable to create the storage directory for %1.").arg(filename);
+            }
         }
-    }
 
-    if (canWrite) {
+        // Convert each Event object into JSON format
+        QJsonArray array;
         for (const Event &event : events) {
             array.append(eventToJson(event));
         }
 
-        QFile file(filename);
-        const bool fileOpened = file.open(QIODevice::WriteOnly | QIODevice::Truncate);
-        if (fileOpened) {
-            const QJsonDocument document(array);
-            file.write(document.toJson(QJsonDocument::Indented));
-            file.close();
-        } else {
-            canWrite = false;
-            saveError = QStringLiteral("Unable to open %1 for writing: %2")
-                            .arg(filename, file.errorString());
+        const QJsonDocument document(array);
+        const QByteArray jsonData = document.toJson(QJsonDocument::Indented);
+
+        // Protect original file by creating a temporary file first
+        QSaveFile file(filename);
+        const bool fileOpened = file.open(QIODevice::WriteOnly);
+        if (!fileOpened) {
+            throw QStringLiteral("Unable to open %1 for writing: %2").arg(filename, file.errorString());
+        }
+
+        const qint64 bytesWritten = file.write(jsonData);
+        const bool writeSuccessful = bytesWritten == jsonData.size();
+        if (!writeSuccessful) {
+            throw QStringLiteral("Unable to write all event data to %1.").arg(filename);
+        }
+
+        // Replace the original file only if the temporary save succeeds
+        const bool commited = file.commit();
+        if (!commited) {
+            throw QStringLiteral("Unable to save %1: %2").arg(filename, file.errorString());
         }
     }
+    catch (const QString &error) {
+        saveError = error;
+    }
 
+    // Store error message or clear it if there were no errors.
     if (errorMessage != nullptr) {
         if (saveError.isEmpty()) {
             errorMessage->clear();
@@ -236,45 +254,53 @@ void Storage::saveToFile(const QVector<Event> &events, const QString &filename, 
 // Loads saved events from a file while keeping the current file format compatible.
 QVector<Event> Storage::loadFromFile(const QString &filename, QString *errorMessage) {
     QVector<Event> returnVal;
-    QFileInfo fileInfo(filename);
     QString loadError;
-    bool canLoad = fileInfo.exists();
 
-    if (canLoad) {
-        QFile file(filename);
-        const bool fileOpened = file.open(QIODevice::ReadOnly);
-        if (fileOpened) {
+    try {
+        QFileInfo fileInfo(filename);
+
+        // Missing file is not an error, it just means there are no saved events yet.
+        if (fileInfo.exists()) {
+            QFile file(filename);
+            const bool fileOpened = file.open(QIODevice::ReadOnly);
+
+            if (!fileOpened) {
+                throw QStringLiteral("Unable to open %1 for reading: %2").arg(filename, file.errorString());
+            }
+
+            // Read all the saved JSON data from the file
             const QByteArray data = file.readAll();
             file.close();
 
             QJsonParseError parseError;
             const QJsonDocument document = QJsonDocument::fromJson(data, &parseError);
-            const bool documentIsValid = parseError.error == QJsonParseError::NoError
-                                         && document.isArray();
+            const bool parseSuccessful = parseError.error == QJsonParseError::NoError;
+            const bool documentIsArray = document.isArray();
+            const bool documentIsValid = (parseSuccessful && documentIsArray);
 
-            if (documentIsValid) {
-                const QJsonArray array = document.array();
-                returnVal.reserve(array.size());
+            if (!documentIsValid) {
+                throw QStringLiteral("Unable to parse %1 as event data.").arg(filename);
+            }
 
-                for (const QJsonValue &value : array) {
-                    const bool valueIsObject = value.isObject();
-                    if (valueIsObject) {
-                        Event event;
-                        const bool parsed = parseEventObject(value.toObject(), &event);
-                        if (parsed) {
-                            returnVal.append(event);
-                        }
+            const QJsonArray array = document.array();
+            returnVal.reserve(array.size());
+
+            // Convert each JSON object into an Event object
+            for (const QJsonValue &value : array) {
+                const bool valueIsObject = value.isObject();
+                if (valueIsObject) {
+                    Event event;
+                    const bool parsed = parseEventObject(value.toObject(), &event);
+                    if (parsed) {
+                        returnVal.append(event);
                     }
                 }
-            } else {
-                canLoad = false;
-                loadError = QStringLiteral("Unable to parse %1 as event data.").arg(filename);
             }
-        } else {
-            canLoad = false;
-            loadError = QStringLiteral("Unable to open %1 for reading: %2")
-                            .arg(filename, file.errorString());
         }
+    }
+    catch (const QString &error) {
+        loadError = error;
+        returnVal.clear();
     }
 
     if (errorMessage != nullptr) {
