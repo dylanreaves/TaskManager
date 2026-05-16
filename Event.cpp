@@ -193,9 +193,7 @@ bool Event::hasRecurrence() const {
 }
 
 bool Event::isMultiDay() const {
-    return m_startDateTime.isValid()
-        && m_endDateTime.isValid()
-        && m_startDateTime.date() != m_endDateTime.date();
+    return m_startDateTime.isValid() && m_endDateTime.isValid() && m_startDateTime.date() != m_endDateTime.date();
 }
 
 bool Event::isTaskLike() const {
@@ -206,14 +204,17 @@ bool Event::isScheduleBlock() const {
     return m_eventType == EventType::ScheduleBlock;
 }
 
-// Returns if an event's fields are filled enough to be created & stored
+// Verifies if an event object fields are filled enough to be created & stored
 bool Event::isValid() const {
     if (m_name.trimmed().isEmpty()) {
-        return false;
+        return false;   // Event is not valid if it has no name
     }
 
-    if (m_startDateTime.isValid() && m_endDateTime.isValid() && m_endDateTime < m_startDateTime) {
-        return false;
+    const bool hasValidStart = m_startDateTime.isValid();
+    const bool hasValidEnd = m_endDateTime.isValid();
+
+    if (hasValidStart && hasValidEnd && m_endDateTime < m_startDateTime) {
+        return false;   // Event is not valid if it has no startDate and endDate
     }
 
     switch (m_eventType) {
@@ -221,19 +222,19 @@ bool Event::isValid() const {
             break;
         case EventType::Event:
         case EventType::ScheduleBlock:
-            if (!m_startDateTime.isValid() || !m_endDateTime.isValid()) {
+            if (!hasValidStart || !hasValidEnd) {
                 return false;
             }
             break;
         case EventType::Reminder:
-            if (!m_startDateTime.isValid()) {
+            if (!hasValidStart) {
                 return false;
             }
             break;
     }
 
     if (hasRecurrence()) {
-        if (m_recurrenceInterval < 1 || !m_startDateTime.isValid()) {
+        if (m_recurrenceInterval < 1 || !hasValidStart) {
             return false;
         }
 
