@@ -302,27 +302,36 @@ RecurrenceType recurrenceTypeFromString(const QString &value) {
 // Formats QDateTime into a more readable format
 QString formatDateTime(const QDateTime &dateTime) {
     QString returnVal = QStringLiteral("--");
+    const QString fullDateTimeFormat = QStringLiteral("MMM d, yyyy h:mm AP");
+
     if (dateTime.isValid()) {
-        returnVal = dateTime.toString(QStringLiteral("MMM d, yyyy h:mm AP"));
+        returnVal = dateTime.toString(fullDateTimeFormat);
     }
+
     return returnVal;
 }
 
 // Formats QDateTime range into a more readable format i.e (XX:xx - XX:xx)
 QString formatDateTimeRange(const QDateTime &startDateTime, const QDateTime &endDateTime) {
     QString returnVal = QStringLiteral("--");
+    const QString dateFormat = QStringLiteral("MMM d, yyyy");
+    const QString timeFormat = QStringLiteral("h:mm AP");
+    const bool rangeIsValid = startDateTime.isValid() && endDateTime.isValid();
 
-    if (startDateTime.isValid() && endDateTime.isValid()) {
-        if (startDateTime.date() == endDateTime.date()) {
-            returnVal = QStringLiteral("%1, %2 - %3")
-                            .arg(startDateTime.toString(QStringLiteral("MMM d, yyyy")))
-                            .arg(startDateTime.toString(QStringLiteral("h:mm AP")))
-                            .arg(endDateTime.toString(QStringLiteral("h:mm AP")));
+    if (rangeIsValid) {
+        const bool sameDate = startDateTime.date() == endDateTime.date();
+        if (sameDate) {
+            const QString dateText = startDateTime.toString(dateFormat);
+            const QString startTimeText = startDateTime.toString(timeFormat);
+            const QString endTimeText = endDateTime.toString(timeFormat);
+            returnVal = QStringLiteral("%1, %2 - %3").arg(dateText, startTimeText, endTimeText);
         } else {
-            returnVal = QStringLiteral("%1 - %2")
-                            .arg(formatDateTime(startDateTime), formatDateTime(endDateTime));
+            const QString startText = formatDateTime(startDateTime);
+            const QString endText = formatDateTime(endDateTime);
+            returnVal = QStringLiteral("%1 - %2").arg(startText, endText);
         }
     }
+
     return returnVal;
 }
 
@@ -406,37 +415,27 @@ QString recurrenceSummaryForEvent(const Event &event) {
         return QStringLiteral("Does not repeat");
     }
 
-    const int interval = std::max(1, event.getRecurrenceInterval());
     QString summary;
+    const int interval = std::max(1, event.getRecurrenceInterval());
 
     switch (event.getRecurrenceType()) {
         case RecurrenceType::Daily:
-            summary = interval == 1
-                ? QStringLiteral("Every day")
-                : QStringLiteral("Every %1 days").arg(interval);
+            summary = interval == 1 ? QStringLiteral("Every day") : QStringLiteral("Every %1 days").arg(interval);
             break;
         case RecurrenceType::Weekly:
-            summary = interval == 1
-                ? QStringLiteral("Every week")
-                : QStringLiteral("Every %1 weeks").arg(interval);
+            summary = interval == 1 ? QStringLiteral("Every week") : QStringLiteral("Every %1 weeks").arg(interval);
             if (!event.getRepeatDays().isEmpty()) {
                 summary += QStringLiteral(" on %1").arg(joinedRepeatDays(event.getRepeatDays()));
             }
             break;
         case RecurrenceType::Monthly:
-            summary = interval == 1
-                ? QStringLiteral("Every month")
-                : QStringLiteral("Every %1 months").arg(interval);
+            summary = interval == 1 ? QStringLiteral("Every month") : QStringLiteral("Every %1 months").arg(interval);
             break;
         case RecurrenceType::Yearly:
-            summary = interval == 1
-                ? QStringLiteral("Every year")
-                : QStringLiteral("Every %1 years").arg(interval);
+            summary = interval == 1 ? QStringLiteral("Every year") : QStringLiteral("Every %1 years").arg(interval);
             break;
         case RecurrenceType::Custom:
-            summary = interval == 1
-                ? QStringLiteral("Custom recurrence")
-                : QStringLiteral("Custom recurrence every %1 intervals").arg(interval);
+            summary = interval == 1 ? QStringLiteral("Custom recurrence") : QStringLiteral("Custom recurrence every %1 intervals").arg(interval);
             break;
         case RecurrenceType::None:
             summary = QStringLiteral("Does not repeat");
@@ -459,49 +458,59 @@ bool occurrenceHasSchedule(const EventOccurrence &occurrence) {
 // all-day items, same-day ranges, and multi-day start/end context for the currently visible date.
 QString occurrenceScheduleText(const EventOccurrence &occurrence, const QDate &visibleDate) {
     QString returnVal = invalidScheduleText(occurrence);
+    const QString timeFormat = QStringLiteral("h:mm AP");
+    const QString shortDateFormat = QStringLiteral("MMM d");
+    const QString fullDateFormat = QStringLiteral("MMM d, yyyy");
 
+    // Only format the schedule text if this occurence has valid a date/time
     if (occurrenceHasSchedule(occurrence)) {
+        const QDate startDate = occurrence.startDateTime.date();
+        const QDate endDate = occurrence.endDateTime.date();
+
+        const bool hasVisibleDate = visibleDate.isValid();
+        const bool startsOnVisibleDate = hasVisibleDate && startDate == visibleDate;
+        const bool endsOnVisibleDate = hasVisibleDate && endDate == visibleDate;
+        const bool sameStartAndEndDate = startDate == endDate;
+
+        // Tasks show due-date wording instead of normal start/end schedule wording
         if (occurrence.eventType == EventType::Task) {
             if (occurrence.allDay) {
-                returnVal = QStringLiteral("Due %1")
-                                .arg(occurrence.endDateTime.date().toString(QStringLiteral("MMM d, yyyy")));
+                returnVal = QStringLiteral("Due %1").arg(endDate.toString(fullDateFormat));
             } else {
-                const bool useShortTime =
-                    visibleDate.isValid() && occurrence.endDateTime.date() == visibleDate;
-                returnVal = QStringLiteral("Due %1")
-                                .arg(useShortTime
-                                         ? occurrence.endDateTime.toString(QStringLiteral("h:mm AP"))
-                                         : formatDateTime(occurrence.endDateTime));
+                const QString dueText = endsOnVisibleDate? occurrence.endDateTime.toString(timeFormat) : formatDateTime(occurrence.endDateTime);
+                returnVal = QStringLiteral("Due %1").arg(dueText);
             }
-        } else if (occurrence.eventType == EventType::Reminder) {
-            const bool useShortTime =
-                visibleDate.isValid() && occurrence.startDateTime.date() == visibleDate;
-            returnVal = QStringLiteral("Remind at %1")
-                            .arg(useShortTime
-                                     ? occurrence.startDateTime.toString(QStringLiteral("h:mm AP"))
-                                     : formatDateTime(occurrence.startDateTime));
-        } else if (occurrence.allDay
-                   && occurrence.startDateTime.date() == occurrence.endDateTime.date()) {
+        }
+        // Reminders show the time instead of a time range
+        else if (occurrence.eventType == EventType::Reminder) {
+            const QString reminderText = startsOnVisibleDate ? occurrence.startDateTime.toString(timeFormat) : formatDateTime(occurrence.startDateTime);
+            returnVal = QStringLiteral("Remind at %1").arg(reminderText);
+        }
+        // Same-day all-day events can be summarized simply
+        else if (occurrence.allDay && sameStartAndEndDate) {
             returnVal = QStringLiteral("All day");
-        } else if (visibleDate.isValid()) {
-            if (occurrence.startDateTime.date() == occurrence.endDateTime.date()) {
-                returnVal = QStringLiteral("%1 - %2")
-                                .arg(occurrence.startDateTime.toString(QStringLiteral("h:mm AP")))
-                                .arg(occurrence.endDateTime.toString(QStringLiteral("h:mm AP")));
-            } else if (occurrence.startDateTime.date() == visibleDate) {
-                returnVal = QStringLiteral("Starts %1")
-                                .arg(occurrence.allDay
-                                         ? occurrence.startDateTime.date().toString(QStringLiteral("MMM d"))
-                                         : occurrence.startDateTime.toString(QStringLiteral("h:mm AP")));
-            } else if (occurrence.endDateTime.date() == visibleDate) {
-                returnVal = QStringLiteral("Ends %1")
-                                .arg(occurrence.allDay
-                                         ? occurrence.endDateTime.date().toString(QStringLiteral("MMM d"))
-                                         : occurrence.endDateTime.toString(QStringLiteral("h:mm AP")));
+        }
+        // If a visible date is provided, format the text relative to that date
+        else if (hasVisibleDate) {
+            if (sameStartAndEndDate) {
+                const QString startTimeText = occurrence.startDateTime.toString(timeFormat);
+                const QString endTimeText = occurrence.endDateTime.toString(timeFormat);
+
+                returnVal = QStringLiteral("%1 - %2").arg(startTimeText, endTimeText);
+            } else if (startsOnVisibleDate) {
+                const QString startText = occurrence.allDay ? startDate.toString(shortDateFormat) : occurrence.startDateTime.toString(timeFormat);
+
+                returnVal = QStringLiteral("Starts %1").arg(startText);
+            } else if (endsOnVisibleDate) {
+                const QString endText = occurrence.allDay ? endDate.toString(shortDateFormat) : occurrence.endDateTime.toString(timeFormat);
+
+                returnVal = QStringLiteral("Ends %1").arg(endText);
             } else {
                 returnVal = formatDateTimeRange(occurrence.startDateTime, occurrence.endDateTime);
             }
-        } else {
+        }
+        // If no visible date, fall back to the full date/time range
+        else {
             returnVal = formatDateTimeRange(occurrence.startDateTime, occurrence.endDateTime);
         }
     }
@@ -563,43 +572,45 @@ QString occurrenceListEndText(const EventOccurrence &occurrence) {
 // today, tomorrow, or future wording based on the current date and time.
 QString agendaListDueSummaryText(const EventOccurrence &occurrence, const QDateTime &now) {
     QString returnVal = QStringLiteral("No due date");
+    const QString timeFormat = QStringLiteral("h:mm AP");
+    const QString shortDateFormat = QStringLiteral("MMM d");
+    const QString dateTimeFormat = QStringLiteral("MMM d, h:mm AP");
 
     if (occurrence.eventType == EventType::Task && occurrence.endDateTime.isValid()) {
-        const QDate dueDate = occurrence.endDateTime.date();
+        // Dates
+        const QDateTime dueDateTime = occurrence.endDateTime;
+        const QDate dueDate = dueDateTime.date();
         const QDate today = now.date();
+        const QDate yesterday = today.addDays(-1);
+        const QDate tomorrow = today.addDays(1);
 
-        if (occurrence.endDateTime < now) {
-            if (dueDate == today) {
-                returnVal = occurrence.allDay
-                    ? QStringLiteral("Overdue today")
-                    : QStringLiteral("Overdue today at %1")
-                          .arg(occurrence.endDateTime.toString(QStringLiteral("h:mm AP")));
-            } else if (dueDate == today.addDays(-1)) {
-                returnVal = occurrence.allDay
-                    ? QStringLiteral("Overdue yesterday")
-                    : QStringLiteral("Overdue yesterday at %1")
-                          .arg(occurrence.endDateTime.toString(QStringLiteral("h:mm AP")));
+        // Bools
+        const bool overdue = dueDateTime < now;
+        const bool dueToday = dueDate == today;
+        const bool dueYesterday = dueDate == yesterday;
+        const bool dueTomorrow = dueDate == tomorrow;
+
+        // Strings
+        const QString timeText = dueDateTime.toString(timeFormat);
+        const QString shortDateText = dueDate.toString(shortDateFormat);
+        const QString dateTimeText = dueDateTime.toString(dateTimeFormat);
+
+        if (overdue) {
+            if (dueToday) {
+                returnVal = occurrence.allDay ? QStringLiteral("Overdue today") : QStringLiteral("Overdue today at %1").arg(timeText);
+            } else if (dueYesterday) {
+                returnVal = occurrence.allDay ? QStringLiteral("Overdue yesterday") : QStringLiteral("Overdue yesterday at %1").arg(timeText);
             } else {
-                returnVal = occurrence.allDay
-                    ? QStringLiteral("Overdue %1").arg(dueDate.toString(QStringLiteral("MMM d")))
-                    : QStringLiteral("Overdue %1")
-                          .arg(occurrence.endDateTime.toString(QStringLiteral("MMM d, h:mm AP")));
+                returnVal = occurrence.allDay ? QStringLiteral("Overdue %1").arg(shortDateText) : QStringLiteral("Overdue %1").arg(dateTimeText);
             }
-        } else if (dueDate == today) {
-            returnVal = occurrence.allDay
-                ? QStringLiteral("Due today")
-                : QStringLiteral("Due today at %1")
-                      .arg(occurrence.endDateTime.toString(QStringLiteral("h:mm AP")));
-        } else if (dueDate == today.addDays(1)) {
-            returnVal = occurrence.allDay
-                ? QStringLiteral("Due tomorrow")
-                : QStringLiteral("Due tomorrow at %1")
-                      .arg(occurrence.endDateTime.toString(QStringLiteral("h:mm AP")));
         } else {
-            returnVal = occurrence.allDay
-                ? QStringLiteral("Due %1").arg(dueDate.toString(QStringLiteral("MMM d")))
-                : QStringLiteral("Due %1")
-                      .arg(occurrence.endDateTime.toString(QStringLiteral("MMM d, h:mm AP")));
+            if (dueToday) {
+                returnVal = occurrence.allDay ? QStringLiteral("Due today") : QStringLiteral("Due today at %1").arg(timeText);
+            } else if (dueTomorrow) {
+                returnVal = occurrence.allDay ? QStringLiteral("Due tomorrow") : QStringLiteral("Due tomorrow at %1").arg(timeText);
+            } else {
+                returnVal = occurrence.allDay ? QStringLiteral("Due %1").arg(shortDateText) : QStringLiteral("Due %1").arg(dateTimeText);
+            }
         }
     }
 
@@ -609,6 +620,8 @@ QString agendaListDueSummaryText(const EventOccurrence &occurrence, const QDateT
 // Chooses the short agenda status label that appears beside an occurrence by checking task due
 // states, reminder times, missing schedules, multi-day progress, and same-day time ranges.
 QString agendaListStatusText(const EventOccurrence &occurrence, const QDateTime &now) {
+    const QString timeFormat = QStringLiteral("h:mm AP");
+    const QString shortDateFormat = QStringLiteral("MMM d");
     const QDate today = now.date();
     QString returnVal = invalidScheduleText(occurrence);
 
@@ -616,49 +629,48 @@ QString agendaListStatusText(const EventOccurrence &occurrence, const QDateTime 
         if (!occurrence.endDateTime.isValid()) {
             returnVal = QStringLiteral("No due date");
         } else if (occurrence.endDateTime.date() == today) {
-            if (occurrence.allDay) {
-                returnVal = QStringLiteral("Due today");
-            } else {
-                returnVal = QStringLiteral("Due %1")
-                                .arg(occurrence.endDateTime.toString(QStringLiteral("h:mm AP")));
-            }
+            returnVal = occurrence.allDay ? QStringLiteral("Due today") : QStringLiteral("Due %1").arg(occurrence.endDateTime.toString(timeFormat));
         }
     } else if (occurrence.eventType == EventType::Reminder && occurrence.startDateTime.isValid()) {
-        returnVal = QStringLiteral("Remind at %1")
-                        .arg(occurrence.startDateTime.toString(QStringLiteral("h:mm AP")));
+        returnVal = QStringLiteral("Remind at %1").arg(occurrence.startDateTime.toString(timeFormat));
     } else if (occurrenceHasSchedule(occurrence)) {
-        const QDate startDate = occurrence.startDateTime.date();
-        const QDate endDate = occurrence.endDateTime.date();
+        // Dates
+        const QDateTime startDateTime = occurrence.startDateTime;
+        const QDateTime endDateTime = occurrence.endDateTime;
+        const QDate startDate = startDateTime.date();
+        const QDate endDate = endDateTime.date();
+
+        // Bools
         const bool multiDay = startDate != endDate;
+        const bool startsToday = startDate == today;
+        const bool endsToday = endDate == today;
+        const bool startedBeforeToday = startDate < today;
+        const bool endsAfterToday = endDate > today;
+
+        // Text
+        const QString startTimeText = startDateTime.toString(timeFormat);
+        const QString endTimeText = endDateTime.toString(timeFormat);
 
         if (multiDay) {
-            if (startDate < today && endDate > today) {
+            if (startedBeforeToday && endsAfterToday) {
                 returnVal = QStringLiteral("Continues");
-            } else if (endDate == today && startDate < today) {
-                returnVal = occurrence.allDay
-                    ? QStringLiteral("Ends %1").arg(endDate.toString(QStringLiteral("MMM d")))
-                    : QStringLiteral("Ends %1")
-                          .arg(occurrence.endDateTime.toString(QStringLiteral("h:mm AP")));
-            } else if (startDate == today && endDate > today) {
-                returnVal = occurrence.allDay
-                    ? QStringLiteral("Starts %1").arg(startDate.toString(QStringLiteral("MMM d")))
-                    : QStringLiteral("Starts %1")
-                          .arg(occurrence.startDateTime.toString(QStringLiteral("h:mm AP")));
+            } else if (endsToday && startedBeforeToday) {
+                const QString endText = occurrence.allDay ? endDate.toString(shortDateFormat) : endTimeText;
+                returnVal = QStringLiteral("Ends %1").arg(endText);
+            } else if (startsToday && endsAfterToday) {
+                const QString startText = occurrence.allDay ? startDate.toString(shortDateFormat) : startTimeText;
+                returnVal = QStringLiteral("Starts %1").arg(startText);
             } else if (occurrence.allDay) {
                 returnVal = QStringLiteral("All day");
-            } else if (startDate == today) {
-                returnVal = QStringLiteral("%1 - %2")
-                                .arg(occurrence.startDateTime.toString(QStringLiteral("h:mm AP")))
-                                .arg(occurrence.endDateTime.toString(QStringLiteral("h:mm AP")));
+            } else if (startsToday) {
+                returnVal = QStringLiteral("%1 - %2").arg(startTimeText, endTimeText);
             } else {
                 returnVal = occurrenceScheduleText(occurrence, today);
             }
         } else if (occurrence.allDay) {
             returnVal = QStringLiteral("All day");
-        } else if (startDate == today) {
-            returnVal = QStringLiteral("%1 - %2")
-                            .arg(occurrence.startDateTime.toString(QStringLiteral("h:mm AP")))
-                            .arg(occurrence.endDateTime.toString(QStringLiteral("h:mm AP")));
+        } else if (startsToday) {
+            returnVal = QStringLiteral("%1 - %2").arg(startTimeText, endTimeText);
         } else {
             returnVal = occurrenceScheduleText(occurrence, today);
         }
