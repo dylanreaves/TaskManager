@@ -1,9 +1,4 @@
-# TaskManager
-
-## Author
-Dylan Reaves  
-CSC 211H Honors Project  
-Spring 2026
+# TaskManager - Author: Dylan Reaves | CSC 211H Honors Project | Spring 2026
 
 ## Inspiration
 I created TaskManager because keeping track of daily responsibilities can become difficult when information is spread across different places. Tasks, reminders, deadlines, and events are often stored in notes, calendars, messages, or memory, which makes it harder to stay organized. I wanted to build a single application that could manage all of those schedule items in one place.
