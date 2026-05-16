@@ -221,7 +221,7 @@ Event MainWindow::createDefaultAddEvent() const {
         selectedDate = m_monthCalendarWidget->selectedDate();
     }
 
-    const QDateTime startDateTime(selectedDate, QTime(9, 0));
+    const QDateTime startDateTime = QDateTime::currentDateTime().addSecs(3600);
     event.setStartDateTime(startDateTime);
     event.setEndDateTime(startDateTime.addSecs(3600));
     event.setEventType(EventType::Task);
