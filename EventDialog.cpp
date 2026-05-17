@@ -21,44 +21,53 @@
 namespace {
 
 QString eventTypeLabel(EventType type) {
+    QString returnVal = QObject::tr("Event");
     switch (type) {
         case EventType::Task:
-            return QObject::tr("Task");
+            returnVal = QObject::tr("Task");
+            break;
         case EventType::Event:
-            return QObject::tr("Event");
+            returnVal = QObject::tr("Event");
+            break;
         case EventType::Reminder:
-            return QObject::tr("Reminder");
+            returnVal = QObject::tr("Reminder");
+            break;
         case EventType::ScheduleBlock:
-            return QObject::tr("Schedule");
-        }
-
-    return QObject::tr("Event");
+            returnVal = QObject::tr("Schedule");
+            break;
+    }
+    return returnVal;
 }
 
 QString recurrenceLabel(RecurrenceType kind) {
+    QString returnVal = QObject::tr("Does not repeat");
     switch (kind) {
         case RecurrenceType::None:
-            return QObject::tr("Does not repeat");
+            returnVal = QObject::tr("Does not repeat");
+            break;
         case RecurrenceType::Daily:
-            return QObject::tr("Daily");
+            returnVal = QObject::tr("Daily");
+            break;
         case RecurrenceType::Weekly:
-            return QObject::tr("Weekly");
+            returnVal = QObject::tr("Weekly");
+            break;
         case RecurrenceType::Monthly:
-            return QObject::tr("Monthly");
+            returnVal = QObject::tr("Monthly");
+            break;
         case RecurrenceType::Yearly:
-            return QObject::tr("Yearly");
+            returnVal = QObject::tr("Yearly");
+            break;
         case RecurrenceType::Custom:
-            return QObject::tr("Custom");
-        }
-
-    return QObject::tr("Does not repeat");
+            returnVal = QObject::tr("Custom");
+            break;
+    }
+    return returnVal;
 }
 
 void configureInlineFieldRow(QHBoxLayout *rowLayout) {
     if (rowLayout == nullptr) {
         return;
     }
-
     rowLayout->setAlignment(Qt::AlignLeft);
     rowLayout->addStretch(1);
 }
@@ -83,13 +92,15 @@ void configureInlineFieldWidget(QWidget *fieldWidget, QLabel *label, QWidget *in
 EventDialog::EventDialog(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::EventDialog) {
+
+    // Build the UI from the .ui file and set dialog size
     ui->setupUi(this);
     resize(720, 640);
-
     setupTypeSelector();
 
+    // Use the default date/time as the starting point for new dialog fields.
     const QDateTime anchorDateTime = defaultDateTime();
-    const QDate defaultUntilDate = anchorDateTime.date().addMonths(1);
+    const QDate defaultUntilDate = anchorDateTime.date().addDays(7);
 
     ui->categoryComboBox->setEditable(true);
     ui->categoryComboBox->setInsertPolicy(QComboBox::NoInsert);
@@ -113,6 +124,7 @@ EventDialog::EventDialog(QWidget *parent)
     ui->recurrenceUntilDateEdit->setDate(defaultUntilDate);
     ui->recurrenceUntilDateEdit->setEnabled(false);
 
+    // Add priorities to dropdown box using Priority enum
     const QList<Priority> priorities = {
         Priority::VeryLow,
         Priority::Low,
@@ -120,12 +132,12 @@ EventDialog::EventDialog(QWidget *parent)
         Priority::High,
         Priority::VeryHigh,
     };
-
     for (Priority priority : priorities) {
         ui->priorityComboBox->addItem(priorityToString(priority), static_cast<int>(priority));
     }
     ui->priorityComboBox->setCurrentIndex(2);
 
+    // Add recurrence types to dropdown box
     ui->recurrenceComboBox->addItem(recurrenceLabel(RecurrenceType::None),static_cast<int>(RecurrenceType::None));
     ui->recurrenceComboBox->addItem(recurrenceLabel(RecurrenceType::Daily),static_cast<int>(RecurrenceType::Daily));
     ui->recurrenceComboBox->addItem(recurrenceLabel(RecurrenceType::Weekly),static_cast<int>(RecurrenceType::Weekly));
@@ -137,6 +149,7 @@ EventDialog::EventDialog(QWidget *parent)
     });
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
+    // Reapplying type-specific UI rules when the selected item type changes.
     connect(ui->typeComboBox,
             qOverload<int>(&QComboBox::currentIndexChanged),
             this,
@@ -251,35 +264,37 @@ void EventDialog::setEvent(const Event &event) {
     m_sourceEvent = event;
     m_isUpdatingUi = true;
 
+    const QDateTime defaultTime = defaultDateTime();
+    const QDateTime eventStart = event.getStartDateTime();
+    const QDateTime eventEnd = event.getEndDateTime();
+    const bool hasStartDateTime = eventStart.isValid();
+    const bool hasEndDateTime = eventEnd.isValid();
+
+    // Basic event details
     setSelectedEventType(event.getEventType());
     ui->nameLineEdit->setText(event.getName());
     ui->locationLineEdit->setText(event.getLocation());
     ui->descriptionTextEdit->setPlainText(event.getDescription());
 
-    const QDateTime startDateTime = event.getStartDateTime().isValid()
-        ? event.getStartDateTime()
-        : defaultDateTime();
-    const QDateTime endDateTime = event.getEndDateTime().isValid()
-        ? event.getEndDateTime()
-        : startDateTime.addSecs(3600);
-    const QDateTime dueDateTime = event.getEndDateTime().isValid()
-        ? event.getEndDateTime()
-        : (event.getStartDateTime().isValid() ? event.getStartDateTime() : defaultDateTime());
-    const QDateTime reminderDateTime = event.getStartDateTime().isValid()
-        ? event.getStartDateTime()
-        : defaultDateTime();
+    // Update date & time fields
+    const QDateTime startDateTime = hasStartDateTime ? eventStart : defaultTime;
+    const QDateTime endDateTime = hasEndDateTime ? eventEnd : startDateTime.addSecs(3600);
+    const QDateTime dueDateTime = hasEndDateTime ? eventEnd : (hasStartDateTime ? eventStart : defaultTime);
+    const QDateTime reminderDateTime = hasStartDateTime ? eventStart : defaultTime;
 
     ui->startDateTimeEdit->setDateTime(startDateTime);
     ui->endDateTimeEdit->setDateTime(endDateTime);
     ui->dueDateTimeEdit->setDateTime(dueDateTime);
     ui->remindAtDateTimeEdit->setDateTime(reminderDateTime);
-    ui->allDayCheckBox->setChecked(event.isAllDay());
-    ui->taskHasDueDateCheckBox->setChecked(event.getStartDateTime().isValid()
-                                           || event.getEndDateTime().isValid());
 
+    ui->allDayCheckBox->setChecked(event.isAllDay());
+    ui->taskHasDueDateCheckBox->setChecked(hasStartDateTime || hasEndDateTime);
+
+    // Priority Field
     const int priorityIndex = ui->priorityComboBox->findData(static_cast<int>(event.getPriority()));
     ui->priorityComboBox->setCurrentIndex(priorityIndex >= 0 ? priorityIndex : 2);
 
+    // Category Field
     const QString category = event.getCategory().trimmed();
     if (!category.isEmpty() && ui->categoryComboBox->findText(category) < 0) {
         ui->categoryComboBox->addItem(category);
@@ -287,14 +302,21 @@ void EventDialog::setEvent(const Event &event) {
     ui->categoryComboBox->setCurrentIndex(-1);
     ui->categoryComboBox->setEditText(category);
 
+    // Recurrence Field
+    const RecurrenceType recurrenceType = event.getRecurrenceType();
+    const int reccurenceValue = static_cast<int>(recurrenceType);
+    const int recurrenceIndex = ui->recurrenceComboBox->findData((reccurenceValue));
+    const QDate recurrenceUntil = event.getRecurrenceUntil();
+    const bool hasRecurrenceUntil = recurrenceUntil.isValid();
+
     ensureRecurrenceTypeVisible(event.getRecurrenceType());
-    const int recurrenceIndex = ui->recurrenceComboBox->findData(static_cast<int>(event.getRecurrenceType()));
     ui->recurrenceComboBox->setCurrentIndex(recurrenceIndex >= 0 ? recurrenceIndex : 0);
     ui->recurrenceIntervalSpinBox->setValue(std::max(1, event.getRecurrenceInterval()));
-    ui->recurrenceUntilCheckBox->setChecked(event.getRecurrenceUntil().isValid());
-    ui->recurrenceUntilDateEdit->setDate(event.getRecurrenceUntil().isValid()
-                                             ? event.getRecurrenceUntil()
-                                             : startDateTime.date().addMonths(1));
+    ui->recurrenceUntilCheckBox->setChecked(hasRecurrenceUntil);
+    ui->recurrenceUntilDateEdit->setDate(
+        hasRecurrenceUntil ? recurrenceUntil : startDateTime.date().addMonths(1)
+    );
+
     setSelectedRepeatDays(event.getRepeatDays());
 
     m_isUpdatingUi = false;
@@ -305,8 +327,9 @@ void EventDialog::setEvent(const Event &event) {
 Event EventDialog::eventData() const {
     Event event = m_sourceEvent;
     const EventType type = selectedEventType();
-    const bool allDay = !ui->allDayCheckBox->isHidden() && ui->allDayCheckBox->isChecked();
+    const bool allDay = ui->allDayCheckBox->isVisible() && ui->allDayCheckBox->isChecked();
 
+    // Set all basic fields
     event.setEventType(type);
     event.setName(ui->nameLineEdit->text().trimmed());
     event.setPriority(static_cast<Priority>(ui->priorityComboBox->currentData().toInt()));
@@ -315,38 +338,45 @@ Event EventDialog::eventData() const {
     event.setDescription(ui->descriptionTextEdit->toPlainText().trimmed());
     event.setAllDay(allDay);
 
+    // Set correct date/time fields depending on the EventType
     switch (type) {
-        case EventType::Task:
-            if (!ui->taskHasDueDateCheckBox->isChecked()) {
+        case EventType::Task: {
+            const bool hasDueDate = ui->taskHasDueDateCheckBox->isChecked();
+
+            // Tasks can exist without a due date.
+            if (!hasDueDate) {
                 event.setStartDateTime(QDateTime());
                 event.setEndDateTime(QDateTime());
                 event.setAllDay(false);
             } else {
                 QDateTime dueDateTime = ui->dueDateTimeEdit->dateTime();
                 if (allDay) {
-                    event.setStartDateTime(QDateTime(dueDateTime.date(), QTime(0, 0, 0)));
-                    event.setEndDateTime(QDateTime(dueDateTime.date(), QTime(23, 59, 59)));
+                    const QDate dueDate = dueDateTime.date();
+                    event.setStartDateTime(QDateTime(dueDate, QTime(0, 0, 0)));
+                    event.setEndDateTime(QDateTime(dueDate, QTime(23, 59, 59)));
                 } else {
                     event.setStartDateTime(dueDateTime);
                     event.setEndDateTime(dueDateTime);
                 }
             }
             break;
+        }
         case EventType::Event:
         case EventType::ScheduleBlock: {
             QDateTime startDateTime = ui->startDateTimeEdit->dateTime();
             QDateTime endDateTime = ui->endDateTimeEdit->dateTime();
-            const bool recurringSchedulePattern =
-                type == EventType::ScheduleBlock && usesRecurringSchedulePattern();
+            const bool recurringSchedulePattern = type == EventType::ScheduleBlock && usesRecurringSchedulePattern();
 
+            // Recurring schedule blocks reuse the selected startDate and endDate
             if (recurringSchedulePattern) {
                 endDateTime = QDateTime(startDateTime.date(), endDateTime.time());
             }
 
+            // All-day events and schedule blocks cover the entire selected day/range.
             if (allDay) {
+                const QDate endDate = recurringSchedulePattern ? startDateTime.date() : endDateTime.date();
                 startDateTime = QDateTime(startDateTime.date(), QTime(0, 0, 0));
-                endDateTime = QDateTime(recurringSchedulePattern ? startDateTime.date() : endDateTime.date(),
-                                        QTime(23, 59, 59));
+                endDateTime = QDateTime(endDate, QTime(23,59,59));
             }
 
             event.setStartDateTime(startDateTime);
@@ -355,6 +385,8 @@ Event EventDialog::eventData() const {
         }
         case EventType::Reminder: {
             const QDateTime reminderDateTime = ui->remindAtDateTimeEdit->dateTime();
+
+            // Reminders use a single date/time, so startDate and endDate are the same
             event.setAllDay(false);
             event.setStartDateTime(reminderDateTime);
             event.setEndDateTime(reminderDateTime);
@@ -362,36 +394,35 @@ Event EventDialog::eventData() const {
         }
     }
 
-    const bool preserveHiddenRecurrence = !eventTypeSupportsRecurrence(type)
-        && type == m_sourceEvent.getEventType()
-        && m_sourceEvent.hasRecurrence();
+    const bool recurrenceSupported = eventTypeSupportsRecurrence(type);
+    const bool preserveHiddenRecurrence = !recurrenceSupported && type == m_sourceEvent.getEventType() && m_sourceEvent.hasRecurrence();
 
-    if (eventTypeSupportsRecurrence(type)) {
+    // Save recurrence settings only for item types that currently support recurrence.
+    if (recurrenceSupported) {
         const RecurrenceType recurrenceType = selectedRecurrenceType();
-        if (recurrenceType == RecurrenceType::Custom
-            && m_sourceEvent.getEventType() == type
-            && m_sourceEvent.getRecurrenceType() == RecurrenceType::Custom) {
+        const bool preserveCustomRecurrence = recurrenceType == RecurrenceType::Custom && m_sourceEvent.getEventType() == type && m_sourceEvent.getRecurrenceType() == RecurrenceType::Custom;
+
+        if (preserveCustomRecurrence) {
             event.setRecurrenceType(RecurrenceType::Custom);
             event.setRecurrenceInterval(std::max(1, m_sourceEvent.getRecurrenceInterval()));
             event.setRecurrenceUntil(m_sourceEvent.getRecurrenceUntil());
             event.setRepeatDays(m_sourceEvent.getRepeatDays());
         } else {
             event.setRecurrenceType(recurrenceType);
+
             if (recurrenceType == RecurrenceType::None) {
                 event.setRecurrenceInterval(1);
                 event.setRecurrenceUntil(QDate());
                 event.setRepeatDays({});
             } else {
+                const bool hasRepeatEndDate = ui->recurrenceUntilCheckBox->isChecked();
                 event.setRecurrenceInterval(std::max(1, ui->recurrenceIntervalSpinBox->value()));
-                event.setRecurrenceUntil(ui->recurrenceUntilCheckBox->isChecked()
-                                             ? ui->recurrenceUntilDateEdit->date()
-                                             : QDate());
-                event.setRepeatDays(recurrenceType == RecurrenceType::Weekly
-                                        ? selectedRepeatDays()
-                                        : QList<Qt::DayOfWeek>{});
+                event.setRecurrenceUntil(hasRepeatEndDate ? ui->recurrenceUntilDateEdit->date() : QDate());
+                event.setRepeatDays(recurrenceType == RecurrenceType::Weekly ? selectedRepeatDays() : QList<Qt::DayOfWeek>{});
             }
         }
     } else if (!preserveHiddenRecurrence) {
+        // If recurrence is not supported and there is nothing to preserve, clear it.
         event.setRecurrenceType(RecurrenceType::None);
         event.setRecurrenceInterval(1);
         event.setRecurrenceUntil(QDate());
@@ -404,6 +435,8 @@ Event EventDialog::eventData() const {
 // Validate the visible fields before allowing the dialog to commit a save.
 void EventDialog::validateAndAccept() {
     const QString name = ui->nameLineEdit->text().trimmed();
+
+    // Every event object must have a name
     if (name.isEmpty()) {
         QMessageBox::warning(this, tr("Missing Name"), tr("Please enter a name before saving."));
         ui->nameLineEdit->setFocus();
@@ -413,17 +446,14 @@ void EventDialog::validateAndAccept() {
     const EventType type = selectedEventType();
     const bool allDay = ui->allDayCheckBox->isVisible() && ui->allDayCheckBox->isChecked();
 
+    // Events and Schedules must have a valid start/end range
     if (eventTypeUsesRange(type)) {
         const QDateTime startDateTime = ui->startDateTimeEdit->dateTime();
         const QDateTime endDateTime = ui->endDateTimeEdit->dateTime();
-        const bool recurringSchedulePattern =
-            type == EventType::ScheduleBlock && usesRecurringSchedulePattern();
-        const QDateTime normalizedEndDateTime = recurringSchedulePattern
-            ? QDateTime(startDateTime.date(), endDateTime.time())
-            : endDateTime;
+        const bool recurringSchedulePattern = (type == EventType::ScheduleBlock && usesRecurringSchedulePattern());
+        const QDateTime normalizedEndDateTime = recurringSchedulePattern ? QDateTime(startDateTime.date(), endDateTime.time()) : endDateTime;
+        const bool invalidRange = allDay ? normalizedEndDateTime.date() < startDateTime.date() : normalizedEndDateTime <= startDateTime;
 
-        const bool invalidRange = allDay ? normalizedEndDateTime.date() < startDateTime.date()
-                                         : normalizedEndDateTime <= startDateTime;
         if (invalidRange) {
             QMessageBox::warning(
                 this,
@@ -431,6 +461,7 @@ void EventDialog::validateAndAccept() {
                 recurringSchedulePattern
                     ? tr("The schedule end time must be later than the start time.")
                     : tr("The end must be on or after the start for this item."));
+
             ui->endDateTimeEdit->setFocus();
             return;
         }
