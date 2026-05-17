@@ -13,6 +13,9 @@
   <property name="windowTitle">
    <string>TaskManager</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true"/>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="rootLayout">
     <property name="spacing">
@@ -80,6 +83,9 @@
        </item>
        <item>
         <widget class="QPushButton" name="addEventButton">
+         <property name="autoFillBackground">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string>Add Event</string>
          </property>
@@ -119,6 +125,9 @@
          <width>360</width>
          <height>16777215</height>
         </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true"/>
        </property>
        <property name="frameShape">
         <enum>QFrame::Shape::StyledPanel</enum>
