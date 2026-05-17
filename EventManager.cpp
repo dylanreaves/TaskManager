@@ -30,24 +30,21 @@ QDate monthGridStartDateForMonth(const QDate &visibleMonth) {
     return returnVal;
 }
 
-const int RECURRING_PAST_DAYS = 30;
-const int RECURRING_FUTURE_DAYS = 180;
-
 bool eventHasConcreteSchedule(const Event &event) {
     return event.getStartDateTime().isValid() && event.getEndDateTime().isValid();
 }
 
 bool eventUsesGeneratedRecurrence(const Event &event) {
-    return eventHasConcreteSchedule(event)
-        && event.hasRecurrence()
-        && event.getRecurrenceType() != RecurrenceType::Custom;
+    return eventHasConcreteSchedule(event) && event.hasRecurrence() && event.getRecurrenceType() != RecurrenceType::Custom;
 }
 
 QDate recurrenceListRangeStart(const QDateTime &now) {
+    const int RECURRING_PAST_DAYS = 30;
     return now.date().addDays(-RECURRING_PAST_DAYS);
 }
 
 QDate recurrenceListRangeEnd(const QDateTime &now) {
+    const int RECURRING_FUTURE_DAYS = 180;
     return now.date().addDays(RECURRING_FUTURE_DAYS);
 }
 
@@ -88,11 +85,8 @@ QList<Qt::DayOfWeek> normalizedRepeatDays(const Event &event) {
 bool eventSpansDate(const Event &event, const QDate &date) {
     bool returnVal = false;
 
-    if (event.getStartDateTime().isValid()
-        && event.getEndDateTime().isValid()
-        && date.isValid()) {
-        returnVal = event.getStartDateTime().date() <= date
-            && event.getEndDateTime().date() >= date;
+    if (event.getStartDateTime().isValid() && event.getEndDateTime().isValid() && date.isValid()) {
+        returnVal = event.getStartDateTime().date() <= date && event.getEndDateTime().date() >= date;
     }
     return returnVal;
 }
@@ -186,8 +180,7 @@ void updateMonthCellJumpDate(MonthCellState &cell, const QDate &clickedDate, con
         return;
     }
 
-    if (!cell.actionableJumpDate.isValid()
-        || (cell.actionableJumpDate != clickedDate && candidateJumpDate < cell.actionableJumpDate)) {
+    if (!cell.actionableJumpDate.isValid() || (cell.actionableJumpDate != clickedDate && candidateJumpDate < cell.actionableJumpDate)) {
         cell.actionableJumpDate = candidateJumpDate;
     }
 }
@@ -566,8 +559,7 @@ QStringList EventManager::distinctCategoriesForDate(const QDate &date, const Eve
         categoriesForDate.append(category);
     }
 
-    std::sort(categoriesForDate.begin(),
-              categoriesForDate.end(),
+    std::sort(categoriesForDate.begin(), categoriesForDate.end(),
                [](const QString &left, const QString &right) {
                    return left.localeAwareCompare(right) < 0;
                });
@@ -757,9 +749,7 @@ QDate EventManager::weekStartForDate(const QDate &date) {
 }
 
 // Keep each view stable by sorting visible occurrences in the same order every refresh.
-void EventManager::sortOccurrences(QVector<EventOccurrence> &occurrences, EventTimeFilter filter,
-                                   const QDateTime &now,
-                                   const QDate &visibleDate) {
+void EventManager::sortOccurrences(QVector<EventOccurrence> &occurrences, EventTimeFilter filter, const QDateTime &now, const QDate &visibleDate) {
     if (filter == EventTimeFilter::Completed) {
         std::sort(occurrences.begin(), occurrences.end(), [](const EventOccurrence &left, const EventOccurrence &right) {
             if (left.completedAt != right.completedAt) {
@@ -989,8 +979,7 @@ QVector<EventOccurrence> EventManager::expandOccurrencesForRange(const Event &ev
               break;
           }
         case RecurrenceType::Yearly: {
-            for (QDateTime occurrenceStartDateTime = anchorStartDateTime,
-                           occurrenceEndDateTime = anchorEndDateTime;
+            for (QDateTime occurrenceStartDateTime = anchorStartDateTime, occurrenceEndDateTime = anchorEndDateTime;
                  occurrenceStartDateTime.date() <= rangeEnd;
                  occurrenceStartDateTime = occurrenceStartDateTime.addYears(interval),
                            occurrenceEndDateTime = occurrenceEndDateTime.addYears(interval)) {
@@ -1016,40 +1005,52 @@ QVector<EventOccurrence> EventManager::expandOccurrencesForRange(const Event &ev
 }
 
 QVector<EventOccurrence> EventManager::visibleOccurrencesForFilter(const Event &event, EventTimeFilter filter, const QDateTime &now) const {
+    QVector<EventOccurrence> returnVal;
+    const bool completed = event.isCompleted();
+    const QDate today = now.date();
+
     switch (filter) {
         case EventTimeFilter::Completed:
-            return event.isCompleted() ? QVector<EventOccurrence>{buildOccurrence(event)} : QVector<EventOccurrence>{};
-        case EventTimeFilter::Today:
-            return event.isCompleted()
-                ? QVector<EventOccurrence>{}
-                : expandOccurrencesForRange(event, now.date(), now.date());
-        case EventTimeFilter::Upcoming:
-            return event.isCompleted()
-                ? QVector<EventOccurrence>{}
-                : expandOccurrencesForRange(event, now.date(), now.date().addDays(5));
-        case EventTimeFilter::ThisWeek: {
-            if (event.isCompleted()) {
-                return {};
+            if (completed) {
+                returnVal = {buildOccurrence(event)};
             }
-            const QDate weekStart = weekStartForDate(now.date());
-            return expandOccurrencesForRange(event, weekStart, weekStart.addDays(6));
+            break;
+        case EventTimeFilter::Today:
+            if (!completed) {
+                returnVal = expandOccurrencesForRange(event, today, today);
+            }
+            break;
+        case EventTimeFilter::Upcoming:
+            if (!completed) {
+                returnVal = expandOccurrencesForRange(event, today, today.addDays(5));
+            }
+            break;
+        case EventTimeFilter::ThisWeek: {
+            if (!completed) {
+                const QDate weekStart = weekStartForDate(today);
+                returnVal = expandOccurrencesForRange(event, weekStart, weekStart.addDays(6));
+            }
+            break;
         }
         case EventTimeFilter::Recurring:
-            if (event.isCompleted() || !event.hasRecurrence()) {
-                return {};
+            if (!completed && event.hasRecurrence()) {
+                if (eventUsesGeneratedRecurrence(event)) {
+                    returnVal = expandOccurrencesForRange(event, recurrenceListRangeStart(now), recurrenceListRangeEnd(now));
+                } else {
+                    returnVal = {buildOccurrence(event)};
+                }
             }
-            if (!eventUsesGeneratedRecurrence(event)) {
-                return {buildOccurrence(event)};
-            }
-            return expandOccurrencesForRange(event, recurrenceListRangeStart(now), recurrenceListRangeEnd(now));
+            break;
         case EventTimeFilter::AllEvents:
-            if (event.isCompleted() || eventIsBacklogCandidate(event) || !eventUsesGeneratedRecurrence(event)) {
-                return {buildOccurrence(event)};
+            if (completed || eventIsBacklogCandidate(event) || !eventUsesGeneratedRecurrence(event)) {
+                returnVal = {buildOccurrence(event)};
+            } else {
+                returnVal = expandOccurrencesForRange(event, recurrenceListRangeStart(now), recurrenceListRangeEnd(now));
             }
-            return expandOccurrencesForRange(event, recurrenceListRangeStart(now), recurrenceListRangeEnd(now));
+            break;
     }
 
-    return {};
+    return returnVal;
 }
 
 EventOccurrence EventManager::buildOccurrence(const Event &event, bool seriesMaster) const {
@@ -1059,8 +1060,7 @@ EventOccurrence EventManager::buildOccurrence(const Event &event, bool seriesMas
 EventOccurrence EventManager::buildOccurrence(const Event &event, const QDateTime &occurrenceStartDateTime, const QDateTime &occurrenceEndDateTime, bool seriesMaster) const {
     EventOccurrence occurrence;
     occurrence.eventId = event.getId();
-    occurrence.occurrenceKey = seriesMaster ? seriesMasterKey(event.getId())
-                                            : occurrenceKey(event.getId(), occurrenceStartDateTime);
+    occurrence.occurrenceKey = seriesMaster ? seriesMasterKey(event.getId()) : occurrenceKey(event.getId(), occurrenceStartDateTime);
     occurrence.originalStartDateTime = event.getStartDateTime();
     occurrence.originalEndDateTime = event.getEndDateTime();
     occurrence.startDateTime = occurrenceStartDateTime;
@@ -1100,6 +1100,7 @@ bool EventManager::matchesTimeFilter(const Event &event, EventTimeFilter filter,
             returnVal = event.isCompleted();
             break;
     }
+
     return returnVal;
 }
 
@@ -1116,11 +1117,10 @@ QDate EventManager::effectiveDate(const Event &event, EventTimeFilter filter) co
 
 void EventManager::recalculateNextId() {
     int maxId = 0;
-    for (const Event &event : m_events) {
+    for (const Event &event : std::as_const(m_events)) {
         maxId = std::max(maxId, event.getId());
     }
     m_nextId = maxId + 1;
 }
-
 
 
