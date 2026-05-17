@@ -17,7 +17,7 @@ enum class Priority {
     VeryHigh = 5,
 };
 
-// EventType rating as an enum (1-5)
+// EventType as an enum (Event, Task, Reminder, Schedule)
 enum class EventType {
     Event,
     Task,
